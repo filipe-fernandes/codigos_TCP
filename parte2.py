@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Aug 31 08:49:33 2020
-
-@author: cliente
-"""
 #####################################
 #SIMULAÇÃO DO SISTEMA 1/(S+1)
 #O CÓDIGO É DIVIDIDO EM 3 PARTES: INICIALIZAÇÃO, SIMULAÇÃO E PLOTS
@@ -18,8 +12,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 import time
-# from control import sample_system
-# from control import TransferFunction
+from control import sample_system
+from control import TransferFunction
 
 print("começou\n")
 tempo_inicial=time.time()
@@ -28,10 +22,12 @@ tempo_inicial=time.time()
 #INICIALIZAÇÃO
 #####################################
 #PARAMETROS DA SIMULAÇÃO
+sysc = TransferFunction([1], [1,1])
+sysd = sample_system(sysc, 0.1, method='zoh')
 
 t0=0
 tf=10
-dt=0.0001
+dt=0.1
 tamanho_t=round((tf-t0)/dt)
 
 #INICIALIZAÇÃO DOS VETORES PARA O ARMEZENAMENTO DA INFORMAÇÃO
@@ -50,7 +46,7 @@ r=1
 #SETANDO CONDIÇÕES INICIAIS
 T[0]=0
 Y[0]=0
-U[0]=0
+U[0]=1
 R[0]=0
 
 print("inicialização concluída\n")
@@ -68,7 +64,7 @@ for k in range(0,tamanho_t-1,1):
     
     ###
     #PLANTA 1/(S+1)
-    y=(1-dt)*y+dt*u
+    y=0.09516 *U[k] +0.9048* Y[k]
     if y>=0.63*u and yt==0:
         yt=y
         tau=t
@@ -84,27 +80,25 @@ for k in range(0,tamanho_t-1,1):
 N=3
 M=3
 # pho=1.9
-# Ntau=round(tau/(dt*10))
-Ntau=round(0.1/dt)
+Ntau=1
 G0=np.zeros((N,N))
 for i in range(0,N):
     for j in range(0,i+1):
         G0[j+N-i-1,j]=Y[Ntau*(N-i)]
 G=G0[:,0:M]
 print(G)
-np.savetxt('G.dat',G)
+# np.savetxt('G2.dat',G)
 i=1
 g_temp=np.zeros(100)
 
 while True:
     g_temp[i]=Y[Ntau*i]
     i+=1
-    if (g_temp[i-1] -g_temp[i-2])/u<0.02 :#2%
+    if abs(Y[-1] - g_temp[i-1])/Y[-1]<0.02:#2%
         break
-
+print(g_temp)
 g=g_temp[np.concatenate((np.where(g_temp!=0)),axis=None)]
-print(g)
-np.savetxt('Gvet.dat',g)
+# np.savetxt('Gvet2.dat',g)
 Ns=len(g)
 temp=np.zeros((1,M))
 temp[0,0]=1

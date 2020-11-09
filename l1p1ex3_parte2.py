@@ -28,7 +28,7 @@ import math
 import time
 
 print("começou\n")
-tempo_inicial=time.time()
+
 #####################################
 #PRIMEIRA PARTE DO CÓGIGO:
 #INICIALIZAÇÃO
@@ -36,9 +36,9 @@ tempo_inicial=time.time()
 #PARAMETROS DA SIMULAÇÃO
 
 t0=0
-tf=20
-dt=0.01
-ts=(0.9942999999999068)/5
+tf=10
+dt=0.001
+ts=0.1# do código anterior
 razao_ts_dt=round(ts/dt)
 tamanho_t=round((tf-t0)/dt)
 
@@ -57,20 +57,25 @@ r=1
 du=0
 
 #Matrizes de controle
-N=3
-M=3
-pho=10.01
+g=np.loadtxt('Gvet.dat')
+Ns=len(g)
+N=Ns
+M=Ns
+pho=1
 
-G=np.loadtxt('G.dat')
-Gvet=np.loadtxt('Gvet.dat')
+G0=np.zeros((N,N))
+for i in range(0,N):
+    for j in range(0,i+1):
+        G0[j+N-i-1,j]=g[(N-i-1)]
+G=G0[:,0:M]
 print(G)
+
 temp=np.zeros((1,M))
 temp[0,0]=1
 Kmpc=(temp@(np.linalg.inv(G.T@G+pho*np.eye(M,M))@G.T))[0,:]
-print(Kmpc)
-
-Ns=len(Gvet)-N
+# print(Kmpc)
 DU=np.zeros(Ns)
+
 #SETANDO CONDIÇÕES INICIAIS
 T[0]=0
 Y[0]=0
@@ -86,24 +91,38 @@ print("inicialização concluída\n")
 #SEGUNDA PARTE DO CÓGIGO:
 #SIMULAÇÃO
 #####################################
+p=0
+ntem=0
+acumulat=0
+tempo_inicial=time.time()
 for k in range(0,tamanho_t-1,1):
     t=t+dt
     ###
     #CONTROLE
+    tc=time.perf_counter()
+    if t>5:
+        p=0.01
     if flag_ts>=razao_ts_dt:
         flag_ts=0
-        for i in range(0,N):
+        for i in range(0,N-1):
             sum_n=0
-            for n in range(0,Ns):
-                sum_n=sum_n+(Gvet[n+i]-Gvet[n])*DU[n]
+            for n in range(0,Ns-1):
+                if n+i<Ns:
+                    g_temp=g[n+i]
+                else:
+                    g_temp=g[Ns-1]
+                sum_n=sum_n+(g_temp-g[n])*DU[n]
             F[i,0]=y+sum_n
         du=(Kmpc@(Ref-F))[0]
         u=u+du
         DU=np.roll(DU,1)
         DU[0]=du
+    acumulat+=(time.perf_counter()-tc)/10000
+    # print(ntem,'demorou ','%.15f'%(time.perf_counter()-tc),'\n')
+    ntem+=1
     ###
     #PLANTA 1/(S+1)
-    y=(1-dt)*y+dt*u
+    y=(1-dt)*y+dt*u+p#perturbação dps de um tempo
     ##########################################################################
     #LEITURA DAS VARIÁVEIS
     Y[k+1]=y
@@ -120,7 +139,7 @@ print('demorou ',time.time()-tempo_inicial,' s\n\n\n')
 #####################################
 plt.rc('text', usetex=False)
 #plt.rc('font', family='serif')
-
+plt.close('all')
 plt.figure()
 plt.plot(T, R,color='k', label=r"$Referência$")
 plt.plot(T, Y,color='C1', label=r"$Saída$")
